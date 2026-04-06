@@ -9,6 +9,8 @@ import os
 from typing import Optional
 
 class Mobile:
+    MAX_VISION_IMAGE_SIZE = (2000, 2000)
+
     def __init__(self):
         self.device = None
 
@@ -136,6 +138,7 @@ class Mobile:
                     screenshot = screenshot_data
                 if os.getenv("SCREENSHOT_QUANTIZED") in ["1", "yes", "true", True]:
                     screenshot = self.quantized_screenshot(screenshot)
+                screenshot = self.limit_vision_image_size(screenshot)
 
                 if as_base64:
                     screenshot = self.as_base64(screenshot)
@@ -146,6 +149,16 @@ class Mobile:
             return MobileState(tree_state=tree_state, screenshot=screenshot)
         except Exception as e:
             raise RuntimeError(f"Failed to get device state: {e}")
+
+    def limit_vision_image_size(self, screenshot: Image.Image) -> Image.Image:
+        if screenshot is None:
+            return screenshot
+        max_width, max_height = self.MAX_VISION_IMAGE_SIZE
+        if screenshot.width <= max_width and screenshot.height <= max_height:
+            return screenshot
+        resized = screenshot.copy()
+        resized.thumbnail((max_width, max_height), resample=Image.Resampling.LANCZOS)
+        return resized
     
     def get_screenshot(self,scale:float=0.7)->Image.Image:
         try:
